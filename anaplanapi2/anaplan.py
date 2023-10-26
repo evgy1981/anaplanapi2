@@ -1,9 +1,13 @@
 #===============================================================================
 # Created:        22 May 2019
-# @author:        AP (adapated from Jesse Wilson)
+# @author:        AP (adapted from Jesse Wilson)
 # Description:    This library implements the Anaplan API to get lists of model resources, upload files to Anaplan server, 
 #                 download files from Anaplan server, and execute actions.
 #===============================================================================
+# ===============================================================================
+# Updated:        July 2023
+# @author:        Evgy Kontorovich
+# ===============================================================================
 
 import requests
 import json
@@ -745,3 +749,67 @@ def pretty_print_request(req):
         '\r\n'.join('{}: {}'.format(k, v) for k, v in req.headers.items()),
         req.body,
     ))
+
+#===============================================================================
+# Functions related to Cloudworks integrations
+#===============================================================================
+
+# Get status of integration
+def get_integration_status(conn, run_id):
+    '''
+        :param conn: AnaplanConnection object which contains authorization string, workspace ID, and model ID
+        :param run_id: ID of running Cloudworks integration
+    '''
+    base_url = "https://api.cloudworks.anaplan.com"
+    api_url = f"{base_url}/2/0/integrations/run/{run_id}"
+
+    authorization = conn.authorization
+
+    # Set the request headers with the access token
+    headers = {
+        "Authorization": authorization,
+        "Content-Type": "application/json"
+    }
+
+    # Execute the integration
+    logging.debug(api_url)
+    response = requests.get(api_url, headers=headers)
+
+    if response.status_code == 200:
+        return response.json()['run']['message']
+    else:
+        logging.error("An error occurred while waiting for Anaplan integration flow status")
+        logging.error(response.json())
+        return ""
+
+def run_integration(conn, integration_id):
+    '''
+        :param conn: AnaplanConnection object which contains authorization string, workspace ID, and model ID
+        :param integration_id: ID of Cloudworks integration to execute
+    '''
+    base_url = "https://api.cloudworks.anaplan.com"
+    api_url = f"{base_url}/2/0/integrations/{integration_id}/run"
+
+    run_id = -1
+
+    authorization = conn.authorization
+
+    # Set the request headers with the access token
+    headers = {
+        "Authorization": authorization,
+        "Content-Type": "application/json"
+    }
+
+    # Execute the integration
+    logging.debug(api_url)
+    response = requests.post(api_url, headers=headers)
+
+    if response.status_code == 200:
+        logging.info("Anaplan integration flow executed successfully.")
+        logging.debug(response)
+        run_id = response.json()['run']['id']
+    else:
+        logging.error(response)
+        logging.error("An error occurred while executing the Anaplan integration flow.")
+
+    return run_id

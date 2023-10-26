@@ -1,0 +1,4 @@
+cryptography
+pybase64
+requests
+pandas
